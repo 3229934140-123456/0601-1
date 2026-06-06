@@ -1,6 +1,7 @@
 const AudienceModule = (() => {
   let searchQuery = '';
   let sortBy = 'joinTime';
+  let selectedUserId = null;
   let eventsBound = false;
 
   function init() {
@@ -73,9 +74,137 @@ const AudienceModule = (() => {
           </div>
         </div>
       </div>
+      
+      <div class="audience-drawer" id="audienceDrawer">
+        <div class="audience-drawer__overlay" id="drawerOverlay"></div>
+        <div class="audience-drawer__content" id="drawerContent">
+          ${renderDrawerContent()}
+        </div>
+      </div>
     `;
 
     startSimulatingMicRequests();
+  }
+
+  function renderDrawerContent() {
+    if (!selectedUserId) return '';
+
+    const state = store.getState();
+    const user = state.audiences.find(u => u.id === selectedUserId);
+    if (!user) return '';
+
+    const avatarColor = utils.getAvatarColor(user.name);
+    const avatarText = utils.getInitials(user.name);
+    
+    const isConnected = state.connectedMics.includes(user.id);
+    const hasMicRequest = state.micRequests.some(r => r.userId === user.id);
+    
+    const userGifts = state.giftHistory.filter(g => g.senderId === user.id || g.sender === user.name);
+    const totalGiftValue = userGifts.reduce((sum, g) => sum + g.value * g.count, 0);
+    
+    const userMessages = state.messages.filter(m => m.userId === user.id || m.userName === user.name);
+    const messageCount = userMessages.length;
+
+    const badges = [];
+    if (user.isVip) badges.push('<span class="detail-badge vip">VIP</span>');
+    if (user.isAdmin) badges.push('<span class="detail-badge admin">房管</span>');
+    if (user.isMuted) badges.push('<span class="detail-badge muted">已禁言</span>');
+    if (isConnected) badges.push('<span class="detail-badge mic">连麦中</span>');
+
+    return `
+      <div class="drawer-header">
+        <h2 class="drawer-title">观众详情</h2>
+        <button class="drawer-close" id="drawerCloseBtn">✕</button>
+      </div>
+      
+      <div class="drawer-user-info">
+        <div class="drawer-avatar" style="background: ${avatarColor}">${avatarText}</div>
+        <div class="drawer-user-meta">
+          <div class="drawer-user-name">
+            ${user.name}
+            <span class="drawer-badges">${badges.join('')}</span>
+          </div>
+          <div class="drawer-user-level">LV.${user.level} · ${user.isVip ? 'VIP用户' : '普通用户'}</div>
+        </div>
+      </div>
+      
+      <div class="drawer-stats">
+        <div class="drawer-stat">
+          <div class="drawer-stat__value">¥${totalGiftValue.toFixed(2)}</div>
+          <div class="drawer-stat__label">送礼总额</div>
+        </div>
+        <div class="drawer-stat">
+          <div class="drawer-stat__value">${messageCount}</div>
+          <div class="drawer-stat__label">发言次数</div>
+        </div>
+        <div class="drawer-stat">
+          <div class="drawer-stat__value">${formatJoinTime(user.joinTime)}</div>
+          <div class="drawer-stat__label">进入时间</div>
+        </div>
+      </div>
+      
+      <div class="drawer-section">
+        <h3 class="drawer-section__title">状态</h3>
+        <div class="drawer-status-list">
+          <div class="drawer-status-item">
+            <span>禁言状态</span>
+            <span class="drawer-status-value ${user.isMuted ? 'muted' : ''}">${user.isMuted ? '已禁言' : '正常'}</span>
+          </div>
+          <div class="drawer-status-item">
+            <span>连麦状态</span>
+            <span class="drawer-status-value ${isConnected ? 'connected' : ''}">${isConnected ? '已连麦' : (hasMicRequest ? '申请中' : '未连麦')}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="drawer-actions">
+        ${user.isMuted ? `
+          <button class="drawer-action-btn" id="drawerUnmuteBtn">
+            🔊 解除禁言
+          </button>
+        ` : `
+          <button class="drawer-action-btn" id="drawerMuteBtn">
+            🔇 禁言用户
+          </button>
+        `}
+        
+        ${isConnected ? `
+          <button class="drawer-action-btn" id="drawerHangupBtn">
+            📞 挂断连麦
+          </button>
+        ` : hasMicRequest ? `
+          <button class="drawer-action-btn primary" id="drawerAcceptMicBtn">
+            ✅ 接受连麦
+          </button>
+        ` : ''}
+        
+        <button class="drawer-action-btn danger" id="drawerKickBtn">
+          🚫 踢出房间
+        </button>
+      </div>
+    `;
+  }
+
+  function openDrawer(userId) {
+    selectedUserId = userId;
+    const drawer = document.getElementById('audienceDrawer');
+    const content = document.getElementById('drawerContent');
+    
+    if (drawer) drawer.classList.add('active');
+    if (content) content.innerHTML = renderDrawerContent();
+  }
+
+  function closeDrawer() {
+    selectedUserId = null;
+    const drawer = document.getElementById('audienceDrawer');
+    if (drawer) drawer.classList.remove('active');
+  }
+
+  function updateDrawer() {
+    const content = document.getElementById('drawerContent');
+    if (content && selectedUserId) {
+      content.innerHTML = renderDrawerContent();
+    }
   }
 
   function renderAudienceList() {
@@ -207,6 +336,14 @@ const AudienceModule = (() => {
       const searchInput = e.target.closest('#audienceSearch');
       if (e.target.id === 'audienceSearch') return;
 
+      const card = e.target.closest('.audience-card');
+      if (card && !e.target.closest('.audience-action-btn')) {
+        const userId = card.dataset.userId;
+        if (userId) {
+          openDrawer(userId);
+        }
+      }
+
       if (e.target.closest('.audience-action-btn')) {
         const btn = e.target.closest('.audience-action-btn');
         const card = btn.closest('.audience-card');
@@ -233,6 +370,41 @@ const AudienceModule = (() => {
         if (userId) {
           hangupMic(userId);
         }
+      }
+
+      if (e.target.id === 'drawerCloseBtn' || e.target.id === 'drawerOverlay') {
+        closeDrawer();
+      }
+
+      if (e.target.id === 'drawerMuteBtn' && selectedUserId) {
+        handleAudienceAction(selectedUserId, 'mute');
+        updateDrawer();
+      }
+
+      if (e.target.id === 'drawerUnmuteBtn' && selectedUserId) {
+        handleAudienceAction(selectedUserId, 'unmute');
+        updateDrawer();
+      }
+
+      if (e.target.id === 'drawerKickBtn' && selectedUserId) {
+        if (confirm('确定要踢出该用户吗？')) {
+          handleAudienceAction(selectedUserId, 'kick');
+          closeDrawer();
+        }
+      }
+
+      if (e.target.id === 'drawerAcceptMicBtn' && selectedUserId) {
+        const state = store.getState();
+        const request = state.micRequests.find(r => r.userId === selectedUserId);
+        if (request) {
+          handleMicRequest(request.id, 'accept');
+          updateDrawer();
+        }
+      }
+
+      if (e.target.id === 'drawerHangupBtn' && selectedUserId) {
+        hangupMic(selectedUserId);
+        updateDrawer();
       }
     });
 
@@ -265,11 +437,10 @@ const AudienceModule = (() => {
         utils.showNotification('私信', '向 ' + user.name + ' 发送私信', 'info');
         break;
       case 'mute':
-        if (user.isMuted) {
-          ChatModule.unmuteUser(userId);
-        } else {
-          ChatModule.muteUser(userId);
-        }
+        ChatModule.muteUser(userId);
+        break;
+      case 'unmute':
+        ChatModule.unmuteUser(userId);
         break;
       case 'kick':
         if (confirm('确定要将 ' + user.name + ' 踢出房间吗？')) {

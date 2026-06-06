@@ -147,6 +147,12 @@ const SettingsModule = (() => {
                 ${renderLoginRecords()}
               </div>
             </div>
+            
+            <div class="data-reset">
+              <h3 class="data-reset__title">数据管理</h3>
+              <div class="data-reset__desc">恢复所有数据到初始演示状态，包括标题、封面、屏蔽词、房管、回放、礼物记录等</div>
+              <button class="btn btn--danger" id="resetDataBtn">恢复默认数据</button>
+            </div>
           </div>
           
           <div class="settings-section ${activeSection === 'preference' ? 'active' : ''}" id="section-preference">
@@ -202,9 +208,17 @@ const SettingsModule = (() => {
   }
 
   function renderAdminList(admins) {
+    const state = store.getState();
     return admins.map(admin => {
       const avatarColor = utils.getAvatarColor(admin.name);
       const avatarText = utils.getInitials(admin.name);
+      const perms = state.adminPermissions[admin.id] || {};
+      const permLabels = [];
+      if (perms.muteUser) permLabels.push('禁言');
+      if (perms.deleteMessage) permLabels.push('删弹幕');
+      if (perms.handleMic) permLabels.push('连麦');
+      if (perms.manageNotice) permLabels.push('公告');
+      
       return `
         <div class="admin-card" data-admin-id="${admin.id}">
           <div class="admin-avatar" style="background: ${avatarColor}">${avatarText}</div>
@@ -214,7 +228,9 @@ const SettingsModule = (() => {
               <span class="admin-badge">房管</span>
             </div>
             <div class="admin-meta">LV.${admin.level} · 任职 ${formatDays(admin.joinTime)}</div>
+            <div class="admin-perms">${permLabels.length > 0 ? permLabels.join(' · ') : '无权限'}</div>
           </div>
+          <button class="admin-perms-btn" data-admin-id="${admin.id}" data-action="editPerms">权限</button>
           <button class="admin-remove" data-admin-id="${admin.id}">移除</button>
         </div>
       `;
@@ -250,6 +266,14 @@ const SettingsModule = (() => {
         saveAllSettings();
       }
 
+      if (e.target.id === 'resetDataBtn') {
+        if (confirm('确定要恢复所有默认数据吗？此操作不可撤销。')) {
+          store.resetToDefault();
+          utils.showNotification('已恢复', '所有数据已恢复为默认值', 'success');
+          render();
+        }
+      }
+
       if (e.target.id === 'avatarUpload') {
         utils.showNotification('提示', '头像上传功能演示中', 'info');
       }
@@ -270,6 +294,12 @@ const SettingsModule = (() => {
       if (removeBtn) {
         const adminId = removeBtn.dataset.adminId;
         removeAdmin(adminId);
+      }
+
+      const permsBtn = e.target.closest('.admin-perms-btn');
+      if (permsBtn) {
+        const adminId = permsBtn.dataset.adminId;
+        editAdminPerms(adminId);
       }
 
       const toggle = e.target.closest('.toggle');
@@ -347,8 +377,19 @@ const SettingsModule = (() => {
       id: 'admin_' + utils.generateId(),
       name: name,
       level: utils.randomInt(10, 30),
-      joinTime: Date.now()
+      joinTime: Date.now(),
+      isAdmin: true
     };
+    
+    store.dispatch('ADD_ADMIN', {
+      userId: newAdmin.id,
+      permissions: {
+        muteUser: true,
+        deleteMessage: true,
+        handleMic: false,
+        manageNotice: false
+      }
+    });
     
     mockData.admins.push(newAdmin);
     
@@ -360,12 +401,89 @@ const SettingsModule = (() => {
     utils.showNotification('添加成功', `${name} 已成为房管`, 'success');
   }
 
+  function editAdminPerms(adminId) {
+    const state = store.getState();
+    const admin = mockData.admins.find(a => a.id === adminId);
+    if (!admin) return;
+    
+    const perms = state.adminPermissions[adminId] || {
+      muteUser: false,
+      deleteMessage: false,
+      handleMic: false,
+      manageNotice: false
+    };
+    
+    const muteChecked = perms.muteUser ? 'checked' : '';
+    const deleteChecked = perms.deleteMessage ? 'checked' : '';
+    const micChecked = perms.handleMic ? 'checked' : '';
+    const noticeChecked = perms.manageNotice ? 'checked' : '';
+    
+    const html = `
+      <div style="background: var(--bg-card); border-radius: 12px; padding: 24px; width: 320px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 16px; color: var(--text-primary);">编辑房管权限 - ${admin.name}</h3>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary);">
+            <input type="checkbox" id="perm-mute" ${muteChecked}>
+            <span>禁言用户</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary);">
+            <input type="checkbox" id="perm-delete" ${deleteChecked}>
+            <span>删除弹幕</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary);">
+            <input type="checkbox" id="perm-mic" ${micChecked}>
+            <span>处理连麦</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary);">
+            <input type="checkbox" id="perm-notice" ${noticeChecked}>
+            <span>管理公告</span>
+          </label>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button id="perm-cancel" style="flex: 1; padding: 10px; border: 1px solid var(--border-light); background: transparent; color: var(--text-primary); border-radius: 6px; cursor: pointer;">取消</button>
+          <button id="perm-save" style="flex: 1; padding: 10px; background: var(--accent-primary); color: white; border: none; border-radius: 6px; cursor: pointer;">保存</button>
+        </div>
+      </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+    modal.innerHTML = html;
+    document.body.appendChild(modal);
+    
+    modal.querySelector('#perm-cancel').onclick = () => modal.remove();
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    
+    modal.querySelector('#perm-save').onclick = () => {
+      const newPerms = {
+        muteUser: modal.querySelector('#perm-mute').checked,
+        deleteMessage: modal.querySelector('#perm-delete').checked,
+        handleMic: modal.querySelector('#perm-mic').checked,
+        manageNotice: modal.querySelector('#perm-notice').checked
+      };
+      
+      store.dispatch('UPDATE_ADMIN_PERMISSIONS', {
+        userId: adminId,
+        permissions: newPerms
+      });
+      
+      const list = document.getElementById('adminList');
+      if (list) {
+        list.innerHTML = renderAdminList(mockData.admins);
+      }
+      
+      modal.remove();
+      utils.showNotification('保存成功', '房管权限已更新', 'success');
+    };
+  }
+
   function removeAdmin(adminId) {
     const admin = mockData.admins.find(a => a.id === adminId);
     if (!admin) return;
     
     if (confirm(`确定要移除 ${admin.name} 的房管权限吗？`)) {
       mockData.admins = mockData.admins.filter(a => a.id !== adminId);
+      store.dispatch('REMOVE_ADMIN', adminId);
       
       const list = document.getElementById('adminList');
       if (list) {

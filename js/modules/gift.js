@@ -2,6 +2,8 @@ const GiftModule = (() => {
   let chartType = 'income';
   let timeRange = 'week';
   let filterType = 'all';
+  let dateStart = null;
+  let dateEnd = null;
   let eventsBound = false;
 
   function init() {
@@ -88,11 +90,27 @@ const GiftModule = (() => {
         <div class="gift-detail-section__header">
           <span class="gift-detail-section__title">礼物明细</span>
           <div class="gift-detail-filters">
-            <button class="filter-btn active" data-filter="all">全部</button>
-            <button class="filter-btn" data-filter="high-value">高价值</button>
-            <button class="filter-btn" data-filter="today">今日</button>
+            <button class="filter-btn ${filterType === 'all' ? 'active' : ''}" data-filter="all">全部</button>
+            <button class="filter-btn ${filterType === 'high-value' ? 'active' : ''}" data-filter="high-value">高价值</button>
+            <button class="filter-btn ${filterType === 'today' ? 'active' : ''}" data-filter="today">今日</button>
           </div>
         </div>
+        
+        <div class="gift-date-filter">
+          <div class="date-filter-group">
+            <label class="date-filter-label">开始日期</label>
+            <input type="date" class="date-filter-input" id="giftDateStart">
+          </div>
+          <div class="date-filter-group">
+            <label class="date-filter-label">结束日期</label>
+            <input type="date" class="date-filter-input" id="giftDateEnd">
+          </div>
+          <button class="btn btn--primary btn--sm" id="applyDateFilterBtn">应用筛选</button>
+          <button class="btn btn--secondary btn--sm" id="resetDateFilterBtn">重置</button>
+        </div>
+        
+        <div class="gift-summary" id="giftSummary"></div>
+        
         <div class="gift-table-container">
           <table class="gift-table">
             <thead>
@@ -113,29 +131,12 @@ const GiftModule = (() => {
     `;
 
     renderChart();
+    updateGiftSummary();
   }
 
-  function renderRankingList() {
-    return mockData.giftRanking.map(item => {
-      const avatarColor = utils.getAvatarColor(item.userName);
-      const avatarText = utils.getInitials(item.userName);
-      return `
-        <div class="gift-ranking-item">
-          <span class="rank-number">${item.rank}</span>
-          <div class="ranking-avatar" style="background: ${avatarColor}">${avatarText}</div>
-          <div class="ranking-info">
-            <div class="ranking-name">${item.userName}</div>
-            <div class="ranking-level">LV.${item.level}</div>
-          </div>
-          <span class="ranking-value">¥${item.totalValue}</span>
-        </div>
-      `;
-    }).join('');
-  }
-
-  function renderGiftTable() {
+  function getFilteredGifts() {
     const state = store.getState();
-    let gifts = [...state.giftHistory].reverse();
+    let gifts = [...state.giftHistory];
 
     if (filterType === 'high-value') {
       gifts = gifts.filter(g => g.value >= 50);
@@ -145,6 +146,71 @@ const GiftModule = (() => {
       const todayStart = today.getTime();
       gifts = gifts.filter(g => g.time >= todayStart);
     }
+
+    if (dateStart) {
+      const start = new Date(dateStart).getTime();
+      gifts = gifts.filter(g => g.time >= start);
+    }
+    if (dateEnd) {
+      const end = new Date(dateEnd).getTime() + 24 * 60 * 60 * 1000;
+      gifts = gifts.filter(g => g.time < end);
+    }
+
+    return gifts;
+  }
+
+  function calculateRanking(gifts) {
+    const userMap = {};
+    
+    gifts.forEach(gift => {
+      const userId = gift.senderId || gift.sender;
+      if (!userMap[userId]) {
+        userMap[userId] = {
+          userId,
+          userName: gift.sender,
+          userLevel: gift.senderLevel || 1,
+          totalValue: 0
+        };
+      }
+      userMap[userId].totalValue += gift.value * gift.count;
+    });
+
+    return Object.values(userMap)
+      .sort((a, b) => b.totalValue - a.totalValue)
+      .slice(0, 10)
+      .map((item, index) => ({
+        ...item,
+        rank: index + 1
+      }));
+  }
+
+  function renderRankingList() {
+    const gifts = getFilteredGifts();
+    const ranking = calculateRanking(gifts);
+    
+    if (ranking.length === 0) {
+      return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">暂无数据</div>';
+    }
+    
+    return ranking.map(item => {
+      const avatarColor = utils.getAvatarColor(item.userName);
+      const avatarText = utils.getInitials(item.userName);
+      return `
+        <div class="gift-ranking-item">
+          <span class="rank-number ${item.rank <= 3 ? 'top' + item.rank : ''}">${item.rank}</span>
+          <div class="ranking-avatar" style="background: ${avatarColor}">${avatarText}</div>
+          <div class="ranking-info">
+            <div class="ranking-name">${item.userName}</div>
+            <div class="ranking-level">LV.${item.userLevel || 1}</div>
+          </div>
+          <span class="ranking-value">¥${item.totalValue.toFixed(2)}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderGiftTable() {
+    let gifts = [...getFilteredGifts()].reverse();
 
     if (gifts.length === 0) {
       return `
@@ -208,11 +274,21 @@ const GiftModule = (() => {
       if (e.target.id === 'exportBtn') {
         exportReport();
       }
+
+      if (e.target.id === 'applyDateFilterBtn') {
+        applyDateFilter();
+      }
+
+      if (e.target.id === 'resetDateFilterBtn') {
+        resetDateFilter();
+      }
     });
 
     store.on('gift:new', () => {
       updateStats();
       updateGiftTable();
+      updateRanking();
+      updateGiftSummary();
     });
   }
 
@@ -252,6 +328,8 @@ const GiftModule = (() => {
     });
 
     updateGiftTable();
+    updateRanking();
+    updateGiftSummary();
   }
 
   function updateStats() {
@@ -280,18 +358,93 @@ const GiftModule = (() => {
     }
   }
 
-  function exportReport() {
-    const state = store.getState();
-    const report = {
-      date: utils.formatDate(Date.now()),
-      todayIncome: state.todayIncome,
-      totalIncome: state.totalIncome,
-      giftCount: state.giftHistory.length,
-      gifts: state.giftHistory
-    };
+  function updateRanking() {
+    const list = document.getElementById('rankingList');
+    if (list) {
+      list.innerHTML = renderRankingList();
+    }
+  }
+
+  function updateGiftSummary() {
+    const summaryEl = document.getElementById('giftSummary');
+    if (!summaryEl) return;
+
+    const gifts = getFilteredGifts();
+    const totalValue = gifts.reduce((sum, g) => sum + g.value * g.count, 0);
+    const totalCount = gifts.reduce((sum, g) => sum + g.count, 0);
+    const giftTypes = new Set(gifts.map(g => g.giftId)).size;
+    const giverCount = new Set(gifts.map(g => g.senderId || g.sender)).size;
+
+    summaryEl.innerHTML = `
+      <div class="summary-item">
+        <div class="summary-item__label">筛选收益</div>
+        <div class="summary-item__value">¥${totalValue.toFixed(2)}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-item__label">礼物数量</div>
+        <div class="summary-item__value">${totalCount}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-item__label">礼物种类</div>
+        <div class="summary-item__value">${giftTypes}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-item__label">送礼人数</div>
+        <div class="summary-item__value">${giverCount}</div>
+      </div>
+    `;
+  }
+
+  function applyDateFilter() {
+    const startInput = document.getElementById('giftDateStart');
+    const endInput = document.getElementById('giftDateEnd');
     
-    console.log('导出报表:', report);
-    utils.showNotification('导出成功', '收益报表已导出', 'success');
+    dateStart = startInput?.value || null;
+    dateEnd = endInput?.value || null;
+
+    updateGiftTable();
+    updateRanking();
+    updateGiftSummary();
+    
+    utils.showNotification('已应用', '日期筛选条件已更新', 'success');
+  }
+
+  function resetDateFilter() {
+    dateStart = null;
+    dateEnd = null;
+    
+    const startInput = document.getElementById('giftDateStart');
+    const endInput = document.getElementById('giftDateEnd');
+    if (startInput) startInput.value = '';
+    if (endInput) endInput.value = '';
+
+    updateGiftTable();
+    updateRanking();
+    updateGiftSummary();
+    
+    utils.showNotification('已重置', '日期筛选已清除', 'info');
+  }
+
+  function exportReport() {
+    const gifts = getFilteredGifts();
+    const totalValue = gifts.reduce((sum, g) => sum + g.value * g.count, 0);
+    
+    let csv = '礼物,送礼人,数量,单价,总价,时间\\n';
+    gifts.forEach(g => {
+      const total = (g.value * g.count).toFixed(2);
+      const time = new Date(g.time).toLocaleString('zh-CN');
+      csv += `"${g.giftName || '礼物'}","${g.sender}","${g.count}","¥${g.value.toFixed(2)}","¥${total}","${time}"\\n`;
+    });
+    
+    const blob = new Blob(['\\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `礼物报表_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    utils.showNotification('导出成功', `共导出 ${gifts.length} 条记录，合计 ¥${totalValue.toFixed(2)}`, 'success');
   }
 
   function show() {

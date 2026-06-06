@@ -84,7 +84,7 @@ const ConsoleModule = (() => {
               </div>
               <div class="form-group">
                 <label class="form-label">直播封面</label>
-                <div class="cover-upload" id="coverUpload">
+                <div class="cover-upload" id="consoleCoverUpload">
                   ${state.cover ? `<img src="${state.cover}" class="cover-upload__img" alt="封面">` : `
                     <span class="cover-upload__icon">🖼️</span>
                     <span class="cover-upload__text">点击上传封面</span>
@@ -162,7 +162,7 @@ const ConsoleModule = (() => {
         recheck();
       }
       
-      if (e.target.closest('#coverUpload')) {
+      if (e.target.closest('#consoleCoverUpload')) {
         utils.selectImage((dataUrl) => {
           store.dispatch('UPDATE_LIVE_INFO', {
             title: store.getState().title,
@@ -411,7 +411,7 @@ const ConsoleModule = (() => {
   }
 
   function updateCoverPreview(coverUrl) {
-    const uploadEl = document.getElementById('coverUpload');
+    const uploadEl = document.getElementById('consoleCoverUpload');
     if (!uploadEl) return;
     
     if (coverUrl) {

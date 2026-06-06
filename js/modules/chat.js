@@ -131,7 +131,10 @@ const ChatModule = (() => {
     if (!container) return;
 
     const state = store.getState();
-    const messages = state.messages.slice(-100);
+    const mutedUserIds = state.audiences.filter(u => u.isMuted).map(u => u.id);
+    const messages = state.messages
+      .filter(msg => !mutedUserIds.includes(msg.userId) || msg.type === 'system' || msg.type === 'gift')
+      .slice(-100);
 
     container.innerHTML = messages.map(msg => renderMessage(msg)).join('');
     
@@ -174,7 +177,7 @@ const ChatModule = (() => {
     }
 
     return `
-      <div class="message-item" data-id="${msg.id}">
+      <div class="message-item" data-id="${msg.id}" data-user-id="${msg.userId || ''}" data-user-name="${msg.userName || ''}">
         <div class="message-avatar" style="background: ${avatarColor}">${avatarText}</div>
         <div class="message-body">
           <div class="message-header">
@@ -183,6 +186,10 @@ const ChatModule = (() => {
             <span class="message-level">LV.${msg.userLevel || 1}</span>
           </div>
           <div class="message-content">${escapeHtml(msg.content)}</div>
+        </div>
+        <div class="message-actions">
+          <button class="message-action-btn" data-action="delete" data-msg-id="${msg.id}" title="删除消息">🗑️</button>
+          <button class="message-action-btn" data-action="mute" data-user-id="${msg.userId}" data-user-name="${msg.userName}" title="禁言">🚫</button>
         </div>
       </div>
     `;
@@ -245,6 +252,21 @@ const ChatModule = (() => {
       if (e.target.classList.contains('moderation-action')) {
         const userId = e.target.dataset.userId;
         unmuteUser(userId);
+      }
+
+      const actionBtn = e.target.closest('.message-action-btn');
+      if (actionBtn) {
+        const action = actionBtn.dataset.action;
+        if (action === 'delete') {
+          const msgId = actionBtn.dataset.msgId;
+          deleteMessage(msgId);
+        } else if (action === 'mute') {
+          const userId = actionBtn.dataset.userId;
+          const userName = actionBtn.dataset.userName;
+          if (confirm(`确定要禁言 ${userName} 吗？`)) {
+            muteUser(userId);
+          }
+        }
       }
     });
 
@@ -430,6 +452,11 @@ const ChatModule = (() => {
     btns.forEach(btn => {
       btn.classList.toggle('active', btn.dataset.speed === speed);
     });
+  }
+
+  function deleteMessage(msgId) {
+    store.dispatch('DELETE_MESSAGE', msgId);
+    utils.showNotification('已删除', '该消息已被删除', 'success');
   }
 
   function muteUser(userId) {

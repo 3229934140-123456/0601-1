@@ -286,6 +286,67 @@
   color: white;
 }
 
+.gift-date-filter {
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
+.date-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.date-filter-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.date-filter-input {
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.date-filter-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.gift-summary {
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+}
+
+.summary-item {
+  text-align: center;
+}
+
+.summary-item__label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.summary-item__value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  font-family: 'Orbitron', sans-serif;
+}
+
 .gift-table-container {
   max-height: 400px;
   overflow-y: auto;

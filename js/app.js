@@ -22,8 +22,23 @@ const App = (() => {
     switchModule('console');
     bindNavEvents();
     
-    store.setState({ replays: mockData.replays });
-    store.setState({ admins: mockData.admins.map(a => a.id) });
+    const state = store.getState();
+    if (!state.replays || state.replays.length === 0) {
+      store.setState({ replays: mockData.replays });
+    }
+    if (!state.admins || state.admins.length === 0) {
+      store.setState({ admins: mockData.admins.map(a => a.id) });
+      const adminPermissions = {};
+      mockData.admins.forEach(admin => {
+        adminPermissions[admin.id] = {
+          muteUser: true,
+          deleteMessage: true,
+          handleMic: true,
+          manageNotice: false
+        };
+      });
+      store.setState({ adminPermissions });
+    }
     
     console.log('🎬 直播控制台已启动');
     console.log('提示: 点击开始直播按钮体验完整功能');

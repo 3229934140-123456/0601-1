@@ -76,7 +76,7 @@ const ReplayModule = (() => {
         <div class="replay-cover">
           ${replay.cover ? `<img src="${replay.cover}" class="replay-cover__img" alt="${replay.title}">` : `<div class="replay-cover__icon">🎬</div>`}
           <span class="replay-status ${replay.status}">${statusText[replay.status]}</span>
-          <span class="replay-duration">${utils.formatDuration(replay.duration)}</span>
+          <span class="replay-duration">${utils.formatDuration(replay.displayDuration || replay.duration)}</span>
           <div class="replay-play-btn">▶</div>
         </div>
         <div class="replay-info">
@@ -119,6 +119,13 @@ const ReplayModule = (() => {
     const replay = store.getState().replays.find(r => r.id === editingReplayId);
     if (!replay) return '';
 
+    const clipStart = replay.clipStartTime !== undefined ? replay.clipStartTime : 0;
+    const clipEnd = replay.clipEndTime !== undefined ? replay.clipEndTime : replay.duration;
+    const clipDuration = clipEnd - clipStart;
+
+    const startPercent = (clipStart / replay.duration) * 100;
+    const endPercent = (clipEnd / replay.duration) * 100;
+
     return `
       <div class="editor-preview">
         <div class="editor-preview__content">
@@ -132,10 +139,10 @@ const ReplayModule = (() => {
       <div class="editor-timeline">
         <div class="editor-timeline__label">剪辑范围</div>
         <div class="editor-timeline__bar" id="timelineBar">
-          <div class="editor-timeline__progress" style="width: 100%;"></div>
+          <div class="editor-timeline__progress" style="left: ${startPercent}%; width: ${endPercent - startPercent}%;"></div>
           <div class="editor-timeline__markers">
-            <div class="timeline-marker start" style="left: 0%;" data-type="start"></div>
-            <div class="timeline-marker end" style="left: 100%;" data-type="end"></div>
+            <div class="timeline-marker start" style="left: ${startPercent}%;" data-type="start" id="startMarker"></div>
+            <div class="timeline-marker end" style="left: ${endPercent}%;" data-type="end" id="endMarker"></div>
           </div>
         </div>
         <div class="editor-timeline__time">
@@ -145,6 +152,21 @@ const ReplayModule = (() => {
       </div>
       
       <div class="editor-form">
+        <div class="editor-form-group">
+          <label class="editor-form-label">开始时间（秒）</label>
+          <input type="number" class="editor-form-input" id="clipStartTime" value="${clipStart}" min="0" max="${replay.duration}">
+        </div>
+        
+        <div class="editor-form-group">
+          <label class="editor-form-label">结束时间（秒）</label>
+          <input type="number" class="editor-form-input" id="clipEndTime" value="${clipEnd}" min="0" max="${replay.duration}">
+        </div>
+        
+        <div class="editor-form-group full">
+          <label class="editor-form-label">剪辑后时长</label>
+          <div class="clip-duration-display" id="clipDurationDisplay">${utils.formatTime(clipDuration)}</div>
+        </div>
+        
         <div class="editor-form-group full">
           <label class="editor-form-label">回放标题</label>
           <input type="text" class="editor-form-input" id="replayTitleInput" value="${replay.title}" maxlength="50">
@@ -152,7 +174,7 @@ const ReplayModule = (() => {
         
         <div class="editor-form-group">
           <label class="editor-form-label">封面设置</label>
-          <div class="editor-cover-upload" id="coverUpload">
+          <div class="editor-cover-upload" id="editorCoverUpload">
             ${editingCover ? `<img src="${editingCover}" class="editor-cover-upload__img" alt="封面">` : `
               <div class="editor-cover-upload__icon">🖼️</div>
               <div class="editor-cover-upload__text">点击上传封面图</div>
@@ -207,7 +229,7 @@ const ReplayModule = (() => {
         saveEdit();
       }
 
-      if (e.target.closest('#coverUpload')) {
+      if (e.target.closest('#editorCoverUpload')) {
         utils.selectImage((dataUrl) => {
           editingCover = dataUrl;
           updateEditorCover(dataUrl);
@@ -229,6 +251,13 @@ const ReplayModule = (() => {
     document.getElementById('replayEditor')?.addEventListener('click', (e) => {
       if (e.target.id === 'replayEditor') {
         closeEditor();
+      }
+    });
+
+    document.addEventListener('input', (e) => {
+      if (e.target.id === 'clipStartTime' || e.target.id === 'clipEndTime') {
+        updateClipDuration();
+        updateTimelineMarkers();
       }
     });
   }
@@ -285,7 +314,7 @@ const ReplayModule = (() => {
   }
 
   function updateEditorCover(coverUrl) {
-    const uploadEl = document.getElementById('coverUpload');
+    const uploadEl = document.getElementById('editorCoverUpload');
     const previewContent = document.querySelector('.editor-preview__content');
     
     if (uploadEl) {
@@ -311,18 +340,90 @@ const ReplayModule = (() => {
     }
   }
 
+  function updateClipDuration() {
+    const startInput = document.getElementById('clipStartTime');
+    const endInput = document.getElementById('clipEndTime');
+    const display = document.getElementById('clipDurationDisplay');
+    
+    if (!startInput || !endInput || !display) return;
+    
+    const startTime = parseInt(startInput.value || '0', 10);
+    const endTime = parseInt(endInput.value || '0', 10);
+    const duration = Math.max(0, endTime - startTime);
+    
+    display.textContent = utils.formatTime(duration);
+  }
+
+  function updateTimelineMarkers() {
+    const replay = store.getState().replays.find(r => r.id === editingReplayId);
+    if (!replay) return;
+    
+    const startInput = document.getElementById('clipStartTime');
+    const endInput = document.getElementById('clipEndTime');
+    const startMarker = document.getElementById('startMarker');
+    const endMarker = document.getElementById('endMarker');
+    const progress = document.querySelector('.editor-timeline__progress');
+    
+    if (!startInput || !endInput || !startMarker || !endMarker || !progress) return;
+    
+    const startTime = parseInt(startInput.value || '0', 10);
+    const endTime = parseInt(endInput.value || '0', 10);
+    const totalDuration = replay.duration;
+    
+    const startPercent = (startTime / totalDuration) * 100;
+    const endPercent = (endTime / totalDuration) * 100;
+    
+    startMarker.style.left = startPercent + '%';
+    endMarker.style.left = endPercent + '%';
+    progress.style.left = startPercent + '%';
+    progress.style.width = (endPercent - startPercent) + '%';
+  }
+
   function saveEdit() {
     if (!editingReplayId) return;
 
     const titleInput = document.getElementById('replayTitleInput');
     const statusSelect = document.getElementById('replayStatusSelect');
+    const startInput = document.getElementById('clipStartTime');
+    const endInput = document.getElementById('clipEndTime');
     
-    const title = titleInput?.value || '';
+    const title = titleInput?.value?.trim() || '';
     const status = statusSelect?.value || 'draft';
+    const startTime = parseInt(startInput?.value || '0', 10);
+    const endTime = parseInt(endInput?.value || '0', 10);
+
+    const replay = store.getState().replays.find(r => r.id === editingReplayId);
+    if (!replay) return;
+
+    if (!title) {
+      utils.showNotification('保存失败', '回放标题不能为空', 'error');
+      titleInput?.focus();
+      return;
+    }
+
+    if (startTime >= endTime) {
+      utils.showNotification('保存失败', '开始时间必须早于结束时间', 'error');
+      startInput?.focus();
+      return;
+    }
+
+    if (startTime < 0 || endTime > replay.duration) {
+      utils.showNotification('保存失败', `时间范围不能超出原始时长（0 - ${replay.duration}秒）`, 'error');
+      return;
+    }
+
+    const clipDuration = endTime - startTime;
 
     store.dispatch('UPDATE_REPLAY', { 
       id: editingReplayId, 
-      data: { title, status, cover: editingCover } 
+      data: { 
+        title, 
+        status, 
+        cover: editingCover,
+        clipStartTime: startTime,
+        clipEndTime: endTime,
+        displayDuration: clipDuration
+      } 
     });
     
     utils.showNotification('保存成功', '回放信息已更新', 'success');
