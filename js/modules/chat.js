@@ -9,6 +9,13 @@ const ChatModule = (() => {
     const state = store.getState();
     mutedUsers = state.audiences.filter(u => u.isMuted).map(u => u.id);
     bindEvents();
+    
+    store.subscribe(() => {
+      const newState = store.getState();
+      mutedUsers = newState.audiences.filter(u => u.isMuted).map(u => u.id);
+      updateMessageList();
+      updateMuteList();
+    });
   }
 
   function render() {
