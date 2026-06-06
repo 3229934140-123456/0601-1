@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>直播控制台 - Live Stream Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/console.css">
+  <link rel="stylesheet" href="css/scene.css">
+  <link rel="stylesheet" href="css/chat.css">
+  <link rel="stylesheet" href="css/gift.css">
+  <link rel="stylesheet" href="css/audience.css">
+  <link rel="stylesheet" href="css/replay.css">
+  <link rel="stylesheet" href="css/settings.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar__logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="logo-text">LIVE STUDIO</span>
+      </div>
+      
+      <nav class="sidebar__nav">
+        <div class="nav-item active" data-module="console">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <circle cx="12" cy="12" r="4" fill="currentColor"/>
+            </svg>
+          </div>
+          <span>开播控制台</span>
+        </div>
+        <div class="nav-item" data-module="scene">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+              <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span>画面管理</span>
+        </div>
+        <div class="nav-item" data-module="chat">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>聊天室</span>
+        </div>
+        <div class="nav-item" data-module="gift">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 12v10H4V12M2 7h20v5H2V7zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>礼物收益</span>
+        </div>
+        <div class="nav-item" data-module="audience">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>观众列表</span>
+        </div>
+        <div class="nav-item" data-module="replay">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="5 3 19 12 5 21 5 3" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>回放管理</span>
+        </div>
+        <div class="nav-item" data-module="settings">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>账号设置</span>
+        </div>
+      </nav>
+      
+      <div class="sidebar__footer">
+        <div class="live-status" id="liveStatus">
+          <span class="live-dot"></span>
+          <span class="live-text">未开播</span>
+        </div>
+        <div class="user-profile">
+          <div class="avatar">
+            <span class="avatar-text">主</span>
+          </div>
+          <div class="user-info">
+            <div class="user-name">主播小明</div>
+            <div class="user-level">LV.28</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    
+    <main class="main-content">
+      <div class="module module--console" id="module-console"></div>
+      <div class="module module--scene" id="module-scene"></div>
+      <div class="module module--chat" id="module-chat"></div>
+      <div class="module module--gift" id="module-gift"></div>
+      <div class="module module--audience" id="module-audience"></div>
+      <div class="module module--replay" id="module-replay"></div>
+      <div class="module module--settings" id="module-settings"></div>
+    </main>
+  </div>
+  
+  <div class="gift-toast-container" id="giftToastContainer"></div>
+  <div class="notification-container" id="notificationContainer"></div>
+  
+  <script src="js/store.js"></script>
+  <script src="js/mock/data.js"></script>
+  <script src="js/utils/common.js"></script>
+  <script src="js/utils/chart.js"></script>
+  <script src="js/modules/console.js"></script>
+  <script src="js/modules/scene.js"></script>
+  <script src="js/modules/chat.js"></script>
+  <script src="js/modules/gift.js"></script>
+  <script src="js/modules/audience.js"></script>
+  <script src="js/modules/replay.js"></script>
+  <script src="js/modules/settings.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
