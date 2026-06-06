@@ -13,8 +13,8 @@ const ChatModule = (() => {
     store.subscribe(() => {
       const newState = store.getState();
       mutedUsers = newState.audiences.filter(u => u.isMuted).map(u => u.id);
-      updateMessageList();
-      updateMuteList();
+      renderMessages();
+      updateMutedList();
     });
   }
 
@@ -353,6 +353,10 @@ const ChatModule = (() => {
   function appendMessage(msg) {
     const container = document.getElementById('chatMessages');
     if (!container) return;
+
+    if (msg.userId && mutedUsers.includes(msg.userId) && msg.type !== 'system' && msg.type !== 'gift') {
+      return;
+    }
 
     const msgEl = document.createElement('div');
     msgEl.innerHTML = renderMessage(msg);

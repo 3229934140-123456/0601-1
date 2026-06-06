@@ -3,6 +3,8 @@ const ReplayModule = (() => {
   let editingReplayId = null;
   let editingCover = '';
   let eventsBound = false;
+  let isDragging = null;
+  let dragTimelineWidth = 0;
 
   function init() {
     const state = store.getState();
@@ -259,6 +261,49 @@ const ReplayModule = (() => {
         updateClipDuration();
         updateTimelineMarkers();
       }
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      const marker = e.target.closest('.timeline-marker');
+      if (!marker || !editingReplayId) return;
+      
+      isDragging = marker.dataset.type;
+      const timelineBar = document.getElementById('timelineBar');
+      if (timelineBar) {
+        dragTimelineWidth = timelineBar.offsetWidth;
+      }
+      
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging || !editingReplayId) return;
+      
+      const timelineBar = document.getElementById('timelineBar');
+      const startInput = document.getElementById('clipStartTime');
+      const endInput = document.getElementById('clipEndTime');
+      const replay = store.getState().replays.find(r => r.id === editingReplayId);
+      
+      if (!timelineBar || !startInput || !endInput || !replay) return;
+      
+      const rect = timelineBar.getBoundingClientRect();
+      let percent = (e.clientX - rect.left) / rect.width;
+      percent = Math.max(0, Math.min(1, percent));
+      
+      const seconds = Math.round(percent * replay.duration);
+      
+      if (isDragging === 'start') {
+        startInput.value = seconds;
+      } else if (isDragging === 'end') {
+        endInput.value = seconds;
+      }
+      
+      updateClipDuration();
+      updateTimelineMarkers();
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = null;
     });
   }
 
