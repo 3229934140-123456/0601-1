@@ -162,6 +162,33 @@ const utils = {
       filtered = filtered.replace(regex, '*'.repeat(word.length));
     });
     return filtered;
+  },
+
+  selectImage(callback) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
+    input.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) {
+        document.body.removeChild(input);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (callback) {
+          callback(ev.target.result);
+        }
+        document.body.removeChild(input);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    input.click();
   }
 };
 

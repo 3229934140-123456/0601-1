@@ -133,8 +133,12 @@ class Store {
         this.emit('mic:request', request);
       },
       ACCEPT_MIC_REQUEST: (requestId) => {
+        const request = this.state.micRequests.find(r => r.id === requestId);
         const micRequests = this.state.micRequests.filter(r => r.id !== requestId);
-        const connectedMics = [...this.state.connectedMics, requestId];
+        let connectedMics = [...this.state.connectedMics];
+        if (request && !connectedMics.includes(request.userId)) {
+          connectedMics.push(request.userId);
+        }
         this.setState({ micRequests, connectedMics });
       },
       REJECT_MIC_REQUEST: (requestId) => {
@@ -155,7 +159,8 @@ class Store {
         const replays = [replay, ...this.state.replays];
         this.setState({ replays });
       },
-      UPDATE_REPLAY: (id, data) => {
+      UPDATE_REPLAY: (payload) => {
+        const { id, data } = payload;
         const replays = this.state.replays.map(r => 
           r.id === id ? { ...r, ...data } : r
         );

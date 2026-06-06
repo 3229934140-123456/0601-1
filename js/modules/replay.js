@@ -1,12 +1,15 @@
 const ReplayModule = (() => {
   let currentFilter = 'all';
   let editingReplayId = null;
+  let editingCover = '';
+  let eventsBound = false;
 
   function init() {
     const state = store.getState();
     if (state.replays.length === 0) {
       store.setState({ replays: mockData.replays });
     }
+    bindEvents();
   }
 
   function render() {
@@ -59,8 +62,6 @@ const ReplayModule = (() => {
         </div>
       </div>
     `;
-
-    bindEvents();
   }
 
   function renderReplayCard(replay) {
@@ -73,7 +74,7 @@ const ReplayModule = (() => {
     return `
       <div class="replay-card" data-replay-id="${replay.id}">
         <div class="replay-cover">
-          <div class="replay-cover__icon">🎬</div>
+          ${replay.cover ? `<img src="${replay.cover}" class="replay-cover__img" alt="${replay.title}">` : `<div class="replay-cover__icon">🎬</div>`}
           <span class="replay-status ${replay.status}">${statusText[replay.status]}</span>
           <span class="replay-duration">${utils.formatDuration(replay.duration)}</span>
           <div class="replay-play-btn">▶</div>
@@ -121,8 +122,10 @@ const ReplayModule = (() => {
     return `
       <div class="editor-preview">
         <div class="editor-preview__content">
-          <div class="editor-preview__icon">🎬</div>
-          <div>回放预览</div>
+          ${editingCover ? `<img src="${editingCover}" class="editor-preview__img" alt="封面预览">` : `
+            <div class="editor-preview__icon">🎬</div>
+            <div>回放预览</div>
+          `}
         </div>
       </div>
       
@@ -150,8 +153,10 @@ const ReplayModule = (() => {
         <div class="editor-form-group">
           <label class="editor-form-label">封面设置</label>
           <div class="editor-cover-upload" id="coverUpload">
-            <div class="editor-cover-upload__icon">🖼️</div>
-            <div class="editor-cover-upload__text">点击上传封面图</div>
+            ${editingCover ? `<img src="${editingCover}" class="editor-cover-upload__img" alt="封面">` : `
+              <div class="editor-cover-upload__icon">🖼️</div>
+              <div class="editor-cover-upload__text">点击上传封面图</div>
+            `}
           </div>
         </div>
         
@@ -167,6 +172,9 @@ const ReplayModule = (() => {
   }
 
   function bindEvents() {
+    if (eventsBound) return;
+    eventsBound = true;
+
     document.addEventListener('click', (e) => {
       const filterBtn = e.target.closest('.replay-filter-btn');
       if (filterBtn) {
@@ -200,7 +208,10 @@ const ReplayModule = (() => {
       }
 
       if (e.target.closest('#coverUpload')) {
-        utils.showNotification('提示', '封面上传功能演示中', 'info');
+        utils.selectImage((dataUrl) => {
+          editingCover = dataUrl;
+          updateEditorCover(dataUrl);
+        });
       }
 
       const card = e.target.closest('.replay-card');
@@ -249,6 +260,8 @@ const ReplayModule = (() => {
 
   function openEditor(replayId) {
     editingReplayId = replayId;
+    const replay = store.getState().replays.find(r => r.id === replayId);
+    editingCover = replay ? replay.cover : '';
     
     const editor = document.getElementById('replayEditor');
     const body = document.getElementById('editorBody');
@@ -263,10 +276,38 @@ const ReplayModule = (() => {
 
   function closeEditor() {
     editingReplayId = null;
+    editingCover = '';
     
     const editor = document.getElementById('replayEditor');
     if (editor) {
       editor.classList.remove('active');
+    }
+  }
+
+  function updateEditorCover(coverUrl) {
+    const uploadEl = document.getElementById('coverUpload');
+    const previewContent = document.querySelector('.editor-preview__content');
+    
+    if (uploadEl) {
+      if (coverUrl) {
+        uploadEl.innerHTML = `<img src="${coverUrl}" class="editor-cover-upload__img" alt="封面">`;
+      } else {
+        uploadEl.innerHTML = `
+          <div class="editor-cover-upload__icon">🖼️</div>
+          <div class="editor-cover-upload__text">点击上传封面图</div>
+        `;
+      }
+    }
+    
+    if (previewContent) {
+      if (coverUrl) {
+        previewContent.innerHTML = `<img src="${coverUrl}" class="editor-preview__img" alt="封面预览">`;
+      } else {
+        previewContent.innerHTML = `
+          <div class="editor-preview__icon">🎬</div>
+          <div>回放预览</div>
+        `;
+      }
     }
   }
 
@@ -279,7 +320,10 @@ const ReplayModule = (() => {
     const title = titleInput?.value || '';
     const status = statusSelect?.value || 'draft';
 
-    store.dispatch('UPDATE_REPLAY', editingReplayId, { title, status });
+    store.dispatch('UPDATE_REPLAY', { 
+      id: editingReplayId, 
+      data: { title, status, cover: editingCover } 
+    });
     
     utils.showNotification('保存成功', '回放信息已更新', 'success');
     closeEditor();

@@ -2,8 +2,10 @@ const GiftModule = (() => {
   let chartType = 'income';
   let timeRange = 'week';
   let filterType = 'all';
+  let eventsBound = false;
 
   function init() {
+    bindEvents();
   }
 
   function render() {
@@ -111,7 +113,6 @@ const GiftModule = (() => {
     `;
 
     renderChart();
-    bindEvents();
   }
 
   function renderRankingList() {
@@ -135,6 +136,15 @@ const GiftModule = (() => {
   function renderGiftTable() {
     const state = store.getState();
     let gifts = [...state.giftHistory].reverse();
+
+    if (filterType === 'high-value') {
+      gifts = gifts.filter(g => g.value >= 50);
+    } else if (filterType === 'today') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.getTime();
+      gifts = gifts.filter(g => g.time >= todayStart);
+    }
 
     if (gifts.length === 0) {
       return `
@@ -179,6 +189,9 @@ const GiftModule = (() => {
   }
 
   function bindEvents() {
+    if (eventsBound) return;
+    eventsBound = true;
+
     document.addEventListener('click', (e) => {
       const chartTab = e.target.closest('.gift-chart-tab');
       if (chartTab) {

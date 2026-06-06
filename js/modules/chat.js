@@ -3,10 +3,12 @@ const ChatModule = (() => {
   let danmakuOpacity = 0.9;
   let showDanmaku = true;
   let mutedUsers = [];
+  let eventsBound = false;
 
   function init() {
     const state = store.getState();
     mutedUsers = state.audiences.filter(u => u.isMuted).map(u => u.id);
+    bindEvents();
   }
 
   function render() {
@@ -122,7 +124,6 @@ const ChatModule = (() => {
     `;
 
     renderMessages();
-    bindEvents();
   }
 
   function renderMessages() {
@@ -211,6 +212,9 @@ const ChatModule = (() => {
   }
 
   function bindEvents() {
+    if (eventsBound) return;
+    eventsBound = true;
+
     document.addEventListener('click', (e) => {
       if (e.target.id === 'sendBtn') {
         sendMessage();

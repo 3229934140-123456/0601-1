@@ -85,8 +85,10 @@ const ConsoleModule = (() => {
               <div class="form-group">
                 <label class="form-label">直播封面</label>
                 <div class="cover-upload" id="coverUpload">
-                  <span class="cover-upload__icon">🖼️</span>
-                  <span class="cover-upload__text">点击上传封面</span>
+                  ${state.cover ? `<img src="${state.cover}" class="cover-upload__img" alt="封面">` : `
+                    <span class="cover-upload__icon">🖼️</span>
+                    <span class="cover-upload__text">点击上传封面</span>
+                  `}
                 </div>
               </div>
             </div>
@@ -161,7 +163,15 @@ const ConsoleModule = (() => {
       }
       
       if (e.target.closest('#coverUpload')) {
-        utils.showNotification('提示', '封面上传功能演示中', 'info');
+        utils.selectImage((dataUrl) => {
+          store.dispatch('UPDATE_LIVE_INFO', {
+            title: store.getState().title,
+            category: store.getState().category,
+            cover: dataUrl
+          });
+          updateCoverPreview(dataUrl);
+          utils.showNotification('上传成功', '直播封面已更新', 'success');
+        });
       }
     });
     
@@ -398,6 +408,20 @@ const ConsoleModule = (() => {
     if (likeEl) likeEl.textContent = utils.formatNumber(state.likeCount);
     if (msgEl) msgEl.textContent = state.messages.length;
     if (incomeEl) incomeEl.textContent = '¥' + state.todayIncome.toFixed(0);
+  }
+
+  function updateCoverPreview(coverUrl) {
+    const uploadEl = document.getElementById('coverUpload');
+    if (!uploadEl) return;
+    
+    if (coverUrl) {
+      uploadEl.innerHTML = `<img src="${coverUrl}" class="cover-upload__img" alt="封面">`;
+    } else {
+      uploadEl.innerHTML = `
+        <span class="cover-upload__icon">🖼️</span>
+        <span class="cover-upload__text">点击上传封面</span>
+      `;
+    }
   }
 
   function updateSidebarStatus(isLive) {

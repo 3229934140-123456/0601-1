@@ -406,6 +406,13 @@
   color: var(--text-muted);
 }
 
+.cover-upload__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--border-radius-sm);
+}
+
 .quick-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -13,10 +13,12 @@ const SceneModule = (() => {
     bgm: false
   };
   let waveformInterval = null;
+  let eventsBound = false;
 
   function init() {
     scenes = JSON.parse(JSON.stringify(mockData.scenes));
     currentSceneId = scenes[0]?.id || null;
+    bindEvents();
   }
 
   function render() {
@@ -178,7 +180,6 @@ const SceneModule = (() => {
     
     renderSceneList();
     renderSourcesList();
-    bindEvents();
     startWaveformAnimation();
   }
 
@@ -234,6 +235,9 @@ const SceneModule = (() => {
   }
 
   function bindEvents() {
+    if (eventsBound) return;
+    eventsBound = true;
+
     document.addEventListener('click', (e) => {
       const sceneItem = e.target.closest('.scene-item');
       if (sceneItem) {

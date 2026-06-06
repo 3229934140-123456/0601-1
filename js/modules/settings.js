@@ -1,7 +1,9 @@
 const SettingsModule = (() => {
   let activeSection = 'profile';
+  let eventsBound = false;
 
   function init() {
+    bindEvents();
   }
 
   function render() {
@@ -197,8 +199,6 @@ const SettingsModule = (() => {
         </div>
       </div>
     `;
-
-    bindEvents();
   }
 
   function renderAdminList(admins) {
@@ -236,6 +236,9 @@ const SettingsModule = (() => {
   }
 
   function bindEvents() {
+    if (eventsBound) return;
+    eventsBound = true;
+
     document.addEventListener('click', (e) => {
       const navItem = e.target.closest('.settings-nav-item');
       if (navItem) {

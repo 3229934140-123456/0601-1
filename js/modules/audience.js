@@ -1,9 +1,11 @@
 const AudienceModule = (() => {
   let searchQuery = '';
   let sortBy = 'joinTime';
+  let eventsBound = false;
 
   function init() {
     generateMicRequests();
+    bindEvents();
   }
 
   function render() {
@@ -73,7 +75,6 @@ const AudienceModule = (() => {
       </div>
     `;
 
-    bindEvents();
     startSimulatingMicRequests();
   }
 
@@ -199,6 +200,9 @@ const AudienceModule = (() => {
   }
 
   function bindEvents() {
+    if (eventsBound) return;
+    eventsBound = true;
+
     document.addEventListener('click', (e) => {
       const searchInput = e.target.closest('#audienceSearch');
       if (e.target.id === 'audienceSearch') return;
